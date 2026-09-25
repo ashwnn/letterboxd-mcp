@@ -205,6 +205,17 @@ async function s256Challenge(verifier: string): Promise<string> {
   return base64Url(new Uint8Array(digest));
 }
 
+export interface PkcePair {
+  verifier: string;
+  challenge: string;
+}
+
+/** PKCE S256 pair, as a client would generate it. */
+export async function pkcePair(): Promise<PkcePair> {
+  const verifier = base64Url(crypto.getRandomValues(new Uint8Array(32)));
+  return { verifier, challenge: await s256Challenge(verifier) };
+}
+
 export function extractHandle(html: string): string {
   const match =
     /<input[^>]*name="handle"[^>]*value="([^"]+)"/i.exec(html) ??
@@ -273,8 +284,7 @@ export async function submitAuthorize(
         .text()}`,
     );
   }
-  const verifier = base64Url(crypto.getRandomValues(new Uint8Array(32)));
-  const challenge = await s256Challenge(verifier);
+  const { verifier, challenge } = await pkcePair();
   const state = "test-state";
   const params = new URLSearchParams({
     response_type: "code",
