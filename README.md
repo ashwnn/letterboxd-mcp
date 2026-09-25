@@ -106,7 +106,7 @@ During authorization you will be asked for `ADMIN_PASSWORD`. If no Letterboxd ac
 ## Relinking and unlinking
 
 - `https://<host>/letterboxd/relink` (password protected): use when the Letterboxd refresh token was revoked. It starts a Letterboxd authorization with a signed, single-use `state`; the callback refuses a state that was not started in the same browser. Re-authorizing any connector also re-links when no healthy link exists.
-- `POST /letterboxd/unlink`: removes the Letterboxd link (password protected; form field `password`).
+- `POST /letterboxd/unlink`: removes the link (password protected; form field `password`). This deletes the tokens stored in the Durable Object. Letterboxd publishes no token revocation endpoint (its OIDC discovery has none), so revoke the app's access from your Letterboxd account settings if you need it revoked upstream too.
 - When the link is broken, tools answer with a message pointing at the relink URL.
 
 ## Tools
@@ -118,7 +118,7 @@ Read tools (granted with `letterboxd:read`, which is the default):
 | History | `whoami` | Identify the linked Letterboxd account. |
 | History | `get_diary` | Recent diary entries. |
 | History | `get_log_entry` | Fetch a single log entry. |
-| History | `find_films` | Resolve films by title or id. |
+| History | `find_films` | List films from your watched/liked/rated/watchlist collections with catalog filters. |
 | History | `get_watchlist` | List the watchlist. |
 | History | `get_member_stats` | Member statistics. |
 | Films | `search_films` | Search the film catalog. |
@@ -218,7 +218,8 @@ Non-goals for v1 (not implemented):
 Other constraints:
 
 - The read-only letterboxd.com lookup is limited to documented HEAD ID lookups; no page scraping.
-- The older `/film/*` API endpoints are used rather than the newer `/production/*` endpoints.
+- The older `/film/*` API endpoints are used rather than the newer `/production/*` endpoints, so TV shows are not supported in v1 (the `/production/*` migration is pending).
+- Letterboxd does not advertise PKCE on its authorization endpoint, so the upstream link relies on the browser-bound `state` (the MCP-facing flow still enforces PKCE `S256`).
 - Smart Placement is not enabled.
 - Tool results are compact JSON text, not rich structured content.
 - Login limiting is per Cloudflare location (`LOGIN_LIMITER`) plus a KV counter, not a single global limit.
