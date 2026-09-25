@@ -94,12 +94,15 @@ interface MemberBrief {
 function memberBrief(raw: Record<string, unknown>): MemberBrief {
   const links = Array.isArray(raw.links) ? raw.links.filter(isRecord) : [];
   const letterboxd = links.find((link) => link.type === "letterboxd");
+  const username = typeof raw.username === "string" ? raw.username : null;
   const url =
     letterboxd && typeof letterboxd.url === "string"
       ? letterboxd.url
       : typeof raw.url === "string"
         ? raw.url
-        : null;
+        : username
+          ? `https://letterboxd.com/${username}/`
+          : null;
   return {
     id: raw.id ?? null,
     username: raw.username ?? null,
@@ -197,7 +200,12 @@ export function registerSocialTools(server: McpServer, deps: ToolDeps): void {
         return {
           film: isRecord(response.film) ? toBrief(response.film) : { id: filmId },
           items,
-          count: typeof response.count === "number" ? response.count : items.length,
+          count:
+            typeof response.itemCount === "number"
+              ? response.itemCount
+              : typeof response.count === "number"
+                ? response.count
+                : items.length,
           averageRating,
         };
       }),

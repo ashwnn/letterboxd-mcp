@@ -390,12 +390,22 @@ export async function fetchMemberIdentity(
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
   if (!response.ok) throw await toApiError(env, response);
-  const body = (await response.json()) as {
-    member?: { id?: string; username?: string; displayName?: string };
-  };
-  const member = body.member;
-  if (!member?.id || !member.username) {
-    throw new LetterboxdApiError(502, "Letterboxd did not return a member identity");
+  const body = (await response.json()) as Record<string, unknown>;
+  // The docs describe /me as account settings, but the member identity has
+  // historically been nested under `member`; accept either shape.
+  const nested = typeof body.member === "object" && body.member !== null ? (body.member as Record<string, unknown>) : null;
+  const member = nested ?? body;
+  const id = member.id;
+  const username = member.username;
+  if (typeof id !== "string" || typeof username !== "string") {
+    throw new LetterboxdApiError(
+      502,
+      "Letterboxd did not return a member identity from /me",
+    );
   }
-  return { id: member.id, username: member.username, displayName: member.displayName };
+  return {
+    id,
+    username,
+    displayName: typeof member.displayName === "string" ? member.displayName : undefined,
+  };
 }

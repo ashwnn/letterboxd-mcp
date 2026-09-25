@@ -218,7 +218,10 @@ export function registerHistoryTools(server: McpServer, deps: ToolDeps): void {
           where: input.reviewsOnly ? ["HasDiaryDate", "HasReview"] : ["HasDiaryDate"],
           year: input.year,
           month: input.month,
-          filmId,
+          // GET /log-entries filters by `film` (the API's name for the LID).
+          film: filmId,
+          minRating: input.minRating,
+          maxRating: input.maxRating,
           sort: DIARY_SORTS[input.sort] ?? "Date",
           perPage: input.perPage,
         };

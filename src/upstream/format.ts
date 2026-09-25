@@ -115,6 +115,51 @@ function filmUrl(film: AnyRecord, id: string): string {
   return id ? `https://boxd.it/${id}` : "";
 }
 
+/**
+ * `Film` carries `contributions` (deprecated but still populated), where each
+ * entry is `{ type, contributors: [{ name, characterName }] }`. Older responses
+ * (and some endpoints) use a single `contributor` plus `job`, so both are read.
+ */
+interface ContributionEntry {
+  type: string;
+  people: { name: string; character: string | null }[];
+}
+
+function contributionsOf(film: AnyRecord): ContributionEntry[] {
+  const entries: ContributionEntry[] = [];
+  for (const item of records(film.contributions)) {
+    const type = String(item.type ?? "");
+    const list = records(item.contributors);
+    if (list.length > 0) {
+      entries.push({
+        type,
+        people: list.map((person) => ({
+          name: str(person.name) ?? "",
+          character: str(person.characterName),
+        })),
+      });
+      continue;
+    }
+    const single = rec(item.contributor);
+    if (single) {
+      entries.push({
+        type,
+        people: [{ name: str(single.name) ?? "", character: str(item.job) }],
+      });
+    }
+  }
+  return entries;
+}
+
+function directorsOf(film: AnyRecord): string[] {
+  const direct = names(film.directors);
+  if (direct.length > 0) return direct;
+  return contributionsOf(film)
+    .filter((entry) => /^(co)?director$/i.test(entry.type))
+    .flatMap((entry) => entry.people.map((person) => person.name))
+    .filter((name) => name.length > 0);
+}
+
 export function toFilmBrief(film: unknown): FilmBrief {
   const f = unwrap(film);
   const id = str(f.id) ?? "";
@@ -122,7 +167,7 @@ export function toFilmBrief(film: unknown): FilmBrief {
     id,
     title: str(f.name) ?? str(f.title) ?? "Unknown film",
     year: num(f.releaseYear) ?? num(f.year),
-    directors: names(f.directors),
+    directors: directorsOf(f),
     url: filmUrl(f, id),
   };
 }
@@ -130,24 +175,21 @@ export function toFilmBrief(film: unknown): FilmBrief {
 const CREW_ROLES = ["Director", "Writer", "Cinematography", "Composer", "Editor"];
 
 function castOf(film: AnyRecord): { name: string; character: string | null }[] {
-  return records(film.contributions)
-    .filter((item) => String(item.type ?? "").toLowerCase() === "actor")
-    .map((item) => {
-      const contributor = rec(item.contributor) ?? {};
-      return { name: str(contributor.name) ?? "", character: str(item.job) };
-    })
-    .filter((member) => member.name.length > 0)
+  return contributionsOf(film)
+    .filter((entry) => entry.type.toLowerCase() === "actor")
+    .flatMap((entry) => entry.people)
+    .filter((person) => person.name.length > 0)
     .slice(0, 10);
 }
 
 function crewOf(film: AnyRecord): { role: string; names: string[] }[] {
-  const contributions = records(film.contributions);
+  const contributions = contributionsOf(film);
   const crew: { role: string; names: string[] }[] = [];
   for (const role of CREW_ROLES) {
     const roleNames = contributions
-      .filter((item) => String(item.type ?? "").toLowerCase() === role.toLowerCase())
-      .map((item) => str((rec(item.contributor) ?? {}).name))
-      .filter((name): name is string => name !== null);
+      .filter((entry) => entry.type.toLowerCase() === role.toLowerCase())
+      .flatMap((entry) => entry.people.map((person) => person.name))
+      .filter((name) => name.length > 0);
     if (roleNames.length > 0) crew.push({ role, names: roleNames });
   }
   return crew;
@@ -168,10 +210,21 @@ function externalId(film: AnyRecord, kind: "tmdb" | "imdb"): string | null {
   return /title\/(tt\d+)/.exec(url)?.[1] ?? null;
 }
 
+function idsOf(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => (typeof item === "string" ? item : str(rec(item)?.id)))
+    .filter((id): id is string => id !== null);
+}
+
 export function toMyFilmStatus(film: unknown, relationship: unknown): MyFilmStatus {
   const f = unwrap(film);
   const r = unwrap(relationship);
-  const filmValue = rec(r.film) ?? f;
+  // ProductionRelationship has no film object, only `productionId`.
+  const filmValue =
+    rec(r.film) ??
+    rec(r.production) ??
+    (str(r.productionId) ? { id: r.productionId } : f);
   return {
     film: toFilmBrief(filmValue),
     watched: r.watched === true,
@@ -179,12 +232,8 @@ export function toMyFilmStatus(film: unknown, relationship: unknown): MyFilmStat
     inWatchlist: r.inWatchlist === true,
     favorited: r.favorited === true || r.favourite === true,
     rating: num(r.rating),
-    diaryEntryIds: records(r.diaryEntries ?? r.diaryEntryIds)
-      .map((entry) => str(entry.id))
-      .filter((id): id is string => id !== null),
-    reviewIds: records(r.reviews ?? r.reviewIds)
-      .map((review) => str(review.id))
-      .filter((id): id is string => id !== null),
+    diaryEntryIds: idsOf(r.diaryEntries ?? r.diaryEntryIds),
+    reviewIds: idsOf(r.reviews ?? r.reviewIds),
   };
 }
 
@@ -198,9 +247,9 @@ export function toFilmDetail(
   const counts = rec(s.counts) ?? {};
   const detail: FilmDetail = {
     ...toFilmBrief(f),
-    runtimeMinutes: num(f.runtime),
+    runtimeMinutes: num(f.runTime) ?? num(f.runtime),
     tagline: str(f.tagline),
-    synopsis: str(f.synopsis),
+    synopsis: str(f.synopsis) ?? str(f.description),
     genres: stringList(f.genres),
     countries: stringList(f.countries),
     languages: stringList(f.languages),
@@ -243,7 +292,11 @@ function tagsOf(entry: AnyRecord): string[] {
   const raw = entry.tags2 ?? entry.tags;
   if (!Array.isArray(raw)) return [];
   return raw
-    .map((item) => (typeof item === "string" ? item : str(rec(item)?.tag)))
+    .map((item) =>
+      typeof item === "string"
+        ? item
+        : str(rec(item)?.displayTag) ?? str(rec(item)?.code) ?? str(rec(item)?.tag),
+    )
     .filter((tag): tag is string => tag !== null);
 }
 

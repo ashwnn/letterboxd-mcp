@@ -107,7 +107,8 @@ async function findDuplicate(
 ): Promise<string | null> {
   const memberId = await resolveMemberId(env);
   const page = await lbRequest<{ items?: unknown }>(env, "GET", "/log-entries", {
-    query: { filmId, member: memberId, where: "HasDiaryDate", perPage: 100 },
+    // GET /log-entries filters by `film`; `filmId` is the POST /log-entries field.
+    query: { film: filmId, member: memberId, where: "HasDiaryDate", perPage: 100 },
     auth: "member",
   });
   for (const entry of asRecords(page.items)) {

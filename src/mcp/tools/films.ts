@@ -58,7 +58,9 @@ export function registerFilmTools(server: McpServer, deps: ToolDeps): void {
         const items: unknown[] = [];
         const otherMatches: unknown[] = [];
         for (const item of asRecords(page.items)) {
-          const film = isRecord(item.film) ? item.film : undefined;
+          // FilmSearchItem carries the film under `film`; some responses inline it.
+          const inline = item.type === "FilmSearchItem" ? item : undefined;
+          const film = isRecord(item.film) ? item.film : inline;
           if (!film) {
             otherMatches.push(item);
             continue;
