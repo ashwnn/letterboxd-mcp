@@ -1,10 +1,17 @@
-# Copy to .dev.vars for local development (never commit .dev.vars).
-# Required
-ADMIN_PASSWORD="change-me"
+# Copy this file to .dev.vars for local development.
+# Keep .dev.vars private and never commit it.
+
+# Required for the owner authorization flow. Use a unique local password.
+ADMIN_PASSWORD="replace-with-a-strong-local-password"
+
+# Required for live Letterboxd account linking. The test suite works without these.
+# Request API access at https://letterboxd.com/api-beta/
 LETTERBOXD_CLIENT_ID="your-letterboxd-api-client-id"
 LETTERBOXD_CLIENT_SECRET="your-letterboxd-api-client-secret"
-# Required for the /letterboxd/relink flow (32+ random bytes).
-COOKIE_SIGNING_KEY=""
-# Optional local overrides (needed for browser OAuth flows against localhost)
+
+# Required for /letterboxd/relink. Generate with: openssl rand -hex 32
+COOKIE_SIGNING_KEY="replace-with-at-least-32-random-bytes"
+
+# Optional overrides for local browser-based OAuth flows:
 # PUBLIC_URL="http://localhost:8787"
 # ENVIRONMENT="dev"
