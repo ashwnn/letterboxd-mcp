@@ -1,0 +1,18 @@
+{
+  "film": { "id": "4k3v", "name": "Parasite" },
+  "items": [
+    {
+      "member": { "id": "9zz1", "username": "critic", "displayName": "Critic" },
+      "relationship": { "watched": true, "liked": true, "rating": 5 },
+      "review": {
+        "text": "A masterpiece of tone control: funny, then unbearable, then devastating.",
+        "containsSpoilers": false
+      }
+    },
+    {
+      "member": { "id": "8yy2", "username": "filmfan", "displayName": "Film Fan" },
+      "relationship": { "watched": true, "liked": false, "rating": 4 }
+    }
+  ],
+  "itemCount": 2
+}

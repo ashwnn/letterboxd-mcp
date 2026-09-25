@@ -1,0 +1,19 @@
+{
+  "items": [
+    {
+      "id": "4k3v",
+      "name": "Parasite",
+      "fullDisplayName": "Parasite (2019)",
+      "year": 2019,
+      "releaseYear": 2019,
+      "sortingName": "parasite",
+      "link": "https://letterboxd.com/film/parasite-2019/",
+      "directors": [{ "name": "Bong Joon-ho" }],
+      "genres": [{ "name": "Drama" }, { "name": "Thriller" }],
+      "links": [
+        { "type": "letterboxd", "url": "https://letterboxd.com/film/parasite-2019/" }
+      ]
+    }
+  ],
+  "itemCount": 1
+}

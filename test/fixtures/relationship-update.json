@@ -1,0 +1,10 @@
+{
+  "data": {
+    "film": { "id": "4k3v", "name": "Parasite" },
+    "watched": true,
+    "liked": false,
+    "rating": 4.5,
+    "inWatchlist": false
+  },
+  "messages": []
+}

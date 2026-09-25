@@ -1,0 +1,31 @@
+{
+  "id": "entry-created",
+  "name": "Parasite",
+  "film": {
+    "id": "4k3v",
+    "name": "Parasite",
+    "releaseYear": 2019,
+    "year": 2019,
+    "directors": [{ "name": "Bong Joon-ho" }],
+    "runtime": 132,
+    "links": [
+      { "type": "letterboxd", "url": "https://letterboxd.com/film/parasite-2019/" }
+    ]
+  },
+  "owner": { "id": "2a9q", "username": "owner", "displayName": "Owner" },
+  "diaryDetails": { "diaryDate": "2024-04-01", "rewatch": false },
+  "review": {
+    "text": "Logged from the MCP server while testing.",
+    "containsSpoilers": false
+  },
+  "tags2": [{ "tag": "mcp" }],
+  "rating": 4,
+  "like": true,
+  "whenCreated": "2024-04-01T18:30:00.000Z",
+  "links": [
+    {
+      "type": "letterboxd",
+      "url": "https://letterboxd.com/owner/film/parasite-2019/"
+    }
+  ]
+}

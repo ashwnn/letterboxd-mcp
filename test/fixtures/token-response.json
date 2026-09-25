@@ -1,0 +1,7 @@
+{
+  "access_token": "member-token",
+  "token_type": "Bearer",
+  "expires_in": 3600,
+  "refresh_token": "refresh-1",
+  "scope": "content:modify profile:private:view oauth:refresh"
+}

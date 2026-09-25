@@ -1,0 +1,17 @@
+{
+  "film": { "id": "4k3v" },
+  "counts": {
+    "watches": 892341,
+    "likes": 152008,
+    "ratings": 480112,
+    "fans": 21004,
+    "lists": 42031,
+    "reviews": 31077
+  },
+  "rating": 4.36,
+  "ratingsHistogram": [
+    { "rating": 0.5, "count": 1204 },
+    { "rating": 4.5, "count": 176430 },
+    { "rating": 5, "count": 210553 }
+  ]
+}

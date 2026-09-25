@@ -1,0 +1,38 @@
+{
+  "items": [
+    {
+      "id": "entry-1",
+      "name": "Parasite",
+      "film": {
+        "id": "4k3v",
+        "name": "Parasite",
+        "releaseYear": 2019,
+        "year": 2019,
+        "directors": [{ "name": "Bong Joon-ho" }],
+        "runtime": 132,
+        "genres": [{ "name": "Drama" }, { "name": "Thriller" }],
+        "links": [
+          { "type": "letterboxd", "url": "https://letterboxd.com/film/parasite-2019/" }
+        ]
+      },
+      "owner": { "id": "2a9q", "username": "owner", "displayName": "Owner" },
+      "diaryDetails": { "diaryDate": "2024-03-15", "rewatch": false },
+      "review": {
+        "text": "Watched it again with subtitles this time and caught so much more.",
+        "containsSpoilers": false
+      },
+      "tags2": [{ "tag": "thriller" }, { "tag": "korean-cinema" }],
+      "rating": 4.5,
+      "like": true,
+      "whenCreated": "2024-03-16T04:20:00.000Z",
+      "links": [
+        {
+          "type": "letterboxd",
+          "url": "https://letterboxd.com/owner/film/parasite-2019/"
+        }
+      ]
+    }
+  ],
+  "next": "https://api.letterboxd.com/api/v0/log-entries?cursor=cD0y&filmId=4k3v&member=2a9q",
+  "itemCount": 2
+}

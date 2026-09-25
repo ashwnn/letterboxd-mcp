@@ -1,0 +1,22 @@
+{
+  "member": { "id": "2a9q" },
+  "counts": {
+    "filmsWatched": 812,
+    "filmsRated": 640,
+    "filmsLiked": 210,
+    "filmsInWatchlist": 64,
+    "reviews": 57,
+    "diaryEntries": 480,
+    "lists": 12,
+    "filmLikes": 210,
+    "listLikes": 4,
+    "reviewLikes": 18,
+    "storyLikes": 0
+  },
+  "ratingsHistogram": [
+    { "rating": 4.5, "count": 120 },
+    { "rating": 5, "count": 61 }
+  ],
+  "yearsInReview": [2023, 2024],
+  "summaryYears": [2024]
+}

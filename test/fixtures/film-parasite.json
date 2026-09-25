@@ -1,0 +1,22 @@
+{
+  "id": "4k3v",
+  "name": "Parasite",
+  "originalName": "기생충",
+  "releaseYear": 2019,
+  "year": 2019,
+  "runtime": 132,
+  "rating": 4.36,
+  "tagline": "Act like you own the place.",
+  "directors": [{ "name": "Bong Joon-ho" }],
+  "genres": [
+    { "id": "drama", "name": "Drama" },
+    { "id": "thriller", "name": "Thriller" }
+  ],
+  "contributions": [
+    { "type": "Director", "contributor": { "name": "Bong Joon-ho" } },
+    { "type": "Actor", "contributor": { "name": "Song Kang-ho" }, "job": "Kim Ki-taek" }
+  ],
+  "links": [
+    { "type": "letterboxd", "url": "https://letterboxd.com/film/parasite-2019/" }
+  ]
+}
