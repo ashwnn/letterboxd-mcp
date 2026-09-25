@@ -1,71 +1,62 @@
-# letterboxd-mcp
+# Letterboxd MCP
 
-A remote [Model Context Protocol](https://modelcontextprotocol.io/) server for [Letterboxd](https://letterboxd.com/), running on Cloudflare Workers. It ships its own OAuth 2.1 authorization server (single owner password), uses the official Letterboxd API, and works offline in tests without live Letterboxd credentials.
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/ashwnn/letterboxd-mcp)
 
-Version: `0.1.0`
+A remote [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server for [Letterboxd](https://letterboxd.com/), built with Cloudflare Workers. It provides read access to your Letterboxd account and optional write tools through the official Letterboxd API.
 
-## Contents
+> **API access required for live Letterboxd data.** Letterboxd API access is currently limited and approval is uncertain, especially for LLM-related or personal projects. Request access at the [Letterboxd API beta page](https://letterboxd.com/api-beta/) before expecting account linking to work. The test suite runs offline without API credentials.
 
-- [What it does](#what-it-does)
-- [Architecture](#architecture)
-- [Letterboxd API access](#letterboxd-api-access)
-- [Deploy](#deploy)
-- [Local development](#local-development)
-- [Connecting a client](#connecting-a-client)
-- [Relinking and unlinking](#relinking-and-unlinking)
-- [Tools](#tools)
-- [Example prompts](#example-prompts)
-- [Configuration](#configuration)
-- [Security](#security)
-- [Testing](#testing)
-- [Known limitations](#known-limitations)
+## Deploy to Cloudflare
 
-## What it does
+Click **Deploy to Cloudflare** above. Cloudflare will copy the public repository into your GitHub account, provision supported Worker resources, and build and deploy it to your Cloudflare account.
 
-- Exposes a stateless MCP endpoint at `https://<host>/mcp`.
-- Acts as an OAuth 2.1 authorization server: PKCE `S256`, Dynamic Client Registration (DCR) and Client ID Metadata Documents (CIMD), and resource indicators (audience-bound tokens).
-- Login is a single owner password (`ADMIN_PASSWORD`).
-- Links one Letterboxd account through Letterboxd OAuth; tokens are kept server-side.
-- Read tools cover diary, films, watchlist, and friends; write tools are registered only when the `letterboxd:write` scope was granted and `READ_ONLY` is not `"true"`.
-- Never scrapes letterboxd.com; only the documented HEAD ID lookups are used.
+During setup, provide:
 
-## Architecture
+- A strong `ADMIN_PASSWORD` for the owner login.
+- Your Letterboxd API `LETTERBOXD_CLIENT_ID` and `LETTERBOXD_CLIENT_SECRET` (available after API access is approved).
+- A random `COOKIE_SIGNING_KEY` of at least 32 bytes. Generate one with `openssl rand -hex 32`.
 
-- Entry point `src/index.ts` (wrangler `main`), deployed with `wrangler` v4.
-- MCP handling: `agents` + `@modelcontextprotocol/server` v2 stateless `createMcpHandler`.
-- OAuth 2.1 authorization server: `@cloudflare/workers-oauth-provider` `1.1.0`.
-- HTTP routes: Hono. Validation: zod. TypeScript strict.
-- Letterboxd access/refresh tokens live in the `LetterboxdTokenStore` Durable Object (`LB_TOKENS` binding); refresh tokens never leave it.
-- OAuth AS state lives in the `OAUTH_KV` KV namespace; `LOOKUP_KV` is a secondary KV namespace used by the Worker for lookups.
-- `LOGIN_LIMITER` rate-limits the owner login.
-- Tools return compact JSON text.
+After the first deployment:
 
-This README documents the v0.1.0 behavior. `src/` is under active development; tool schemas and route internals are defined there.
+1. Confirm the Worker’s `PUBLIC_URL` matches its deployed `https://<worker>.<your-subdomain>.workers.dev` address. Update it in the copied repository’s `wrangler.jsonc` and redeploy if needed.
+2. Add `https://<worker-host>/letterboxd/callback` as the redirect URI for your Letterboxd API client.
+3. Open `https://<worker-host>/mcp` in your MCP client to connect.
 
-## Letterboxd API access
+Cloudflare’s deploy flow provisions the declared KV namespaces and Durable Object binding. It does not grant Letterboxd API access; account linking requires approved API credentials.
 
-This project uses the official Letterboxd API. Request access by emailing [api@letterboxd.com](mailto:api@letterboxd.com) with the project title in the subject line; details are on the [Letterboxd API beta page](https://letterboxd.com/api-beta/).
+## Deploy it yourself
 
-Letterboxd is currently not granting API access for LLM/GPT-related or private/personal projects, so approval is uncertain. The project is built to run its test suite entirely offline, without live credentials, so you can develop and self-test while waiting.
+### Requirements
 
-## Deploy
+- Node.js 20 or newer and npm
+- A Cloudflare account with Workers enabled
+- Letterboxd API credentials for live account linking
 
-Prerequisites: a Cloudflare account (Workers, KV, Durable Objects) and an approved Letterboxd API key.
+### 1. Get the code and install dependencies
 
 ```bash
-git clone git@github.com:ashwnn/letterboxd-mcp.git
+git clone https://github.com/ashwnn/letterboxd-mcp.git
 cd letterboxd-mcp
-npm install
+npm ci
+npx wrangler login
 ```
 
-Create the two KV namespaces:
+### 2. Create the KV namespaces
 
 ```bash
 npx wrangler kv namespace create OAUTH_KV
 npx wrangler kv namespace create LOOKUP_KV
 ```
 
-Paste the returned ids into `kv_namespaces` in `wrangler.jsonc`, then set `vars.PUBLIC_URL` to the origin the Worker will be served from (it must match the deployed host), for example `https://letterboxd-mcp.<account>.workers.dev`.
+Copy each command’s returned ID into the matching `id` in `kv_namespaces` in `wrangler.jsonc`. Keep the binding names unchanged.
+
+### 3. Set the public URL and secrets
+
+Enable a `workers.dev` subdomain in the Cloudflare dashboard if you have not already. Set `vars.PUBLIC_URL` in `wrangler.jsonc` to the Worker’s exact public origin, for example:
+
+```text
+https://letterboxd-mcp.<your-subdomain>.workers.dev
+```
 
 Set the secrets:
 
@@ -73,153 +64,140 @@ Set the secrets:
 npx wrangler secret put ADMIN_PASSWORD
 npx wrangler secret put LETTERBOXD_CLIENT_ID
 npx wrangler secret put LETTERBOXD_CLIENT_SECRET
-npx wrangler secret put COOKIE_SIGNING_KEY   # required for the relink flow
+npx wrangler secret put COOKIE_SIGNING_KEY
 ```
 
-Deploy:
+Use a unique strong password and a random signing key. Do not put production secrets in `wrangler.jsonc` or commit `.dev.vars`.
+
+### 4. Deploy and register the callback
 
 ```bash
 npm run deploy
 ```
 
-Finally, register `https://<host>/letterboxd/callback` as the redirect URI for your Letterboxd API key.
+Register `https://<worker-host>/letterboxd/callback` as the redirect URI in your Letterboxd API client settings.
 
-## Local development
+## Run locally
 
 ```bash
-cp .dev.vars.example .dev.vars   # fill in the values; .dev.vars is gitignored
-npm run dev                      # wrangler dev, serves http://localhost:8787
-npx @modelcontextprotocol/inspector
+git clone https://github.com/ashwnn/letterboxd-mcp.git
+cd letterboxd-mcp
+npm ci
+cp .dev.vars.example .dev.vars
 ```
 
-Point MCP Inspector at `http://localhost:8787/mcp`. Localhost redirects are only allowed when `ENVIRONMENT=dev`, so uncomment the local overrides (`PUBLIC_URL`, `ENVIRONMENT`) in `.dev.vars` for browser-based OAuth flows.
+Fill in `.dev.vars` with local values, then run:
 
-## Connecting a client
+```bash
+npm run dev
+```
 
-Both clients use the same MCP URL, `https://<host>/mcp`:
+The local Worker is served at `http://localhost:8787`. For browser-based OAuth testing, set these local overrides in `.dev.vars`:
 
-- **Claude**: Settings → Connectors → Add custom connector, then enter the URL.
-- **ChatGPT**: enable developer mode and add a connector with the same URL.
+```dotenv
+PUBLIC_URL="http://localhost:8787"
+ENVIRONMENT="dev"
+```
 
-During authorization you will be asked for `ADMIN_PASSWORD`. If no Letterboxd account is linked yet, the flow redirects to Letterboxd so you can link it. Connections use PKCE `S256`, DCR + CIMD, and resource indicators, with tokens audience-bound to this server.
+Use [MCP Inspector](https://github.com/modelcontextprotocol/inspector) and connect it to `http://localhost:8787/mcp`.
 
-## Relinking and unlinking
+## What it provides
 
-- `https://<host>/letterboxd/relink` (password protected): use when the Letterboxd refresh token was revoked. It starts a Letterboxd authorization with a signed, single-use `state`; the callback refuses a state that was not started in the same browser. Re-authorizing any connector also re-links when no healthy link exists.
-- `POST /letterboxd/unlink`: removes the link (password protected; form field `password`). This deletes the tokens stored in the Durable Object. Letterboxd publishes no token revocation endpoint (its OIDC discovery has none), so revoke the app's access from your Letterboxd account settings if you need it revoked upstream too.
-- When the link is broken, tools answer with a message pointing at the relink URL.
+- A stateless MCP endpoint at `/mcp` and an OAuth 2.1 authorization server.
+- A single owner password gate, PKCE S256, Dynamic Client Registration, Client ID Metadata Documents, and audience-bound tokens.
+- Server-side Letterboxd OAuth tokens stored in a Durable Object.
+- Read tools for diary, films, watchlist, member stats, and friends.
+- Optional write tools gated by the `letterboxd:write` scope and the `READ_ONLY` setting.
+- No Letterboxd page scraping. The project uses the official API and documented HEAD ID lookups.
 
-## Tools
+## Available tools
 
-Read tools (granted with `letterboxd:read`, which is the default):
-
-| Group | Tool | Purpose |
-| --- | --- | --- |
-| History | `whoami` | Identify the linked Letterboxd account. |
-| History | `get_diary` | Recent diary entries. |
-| History | `get_log_entry` | Fetch a single log entry. |
-| History | `find_films` | List films from your watched/liked/rated/watchlist collections with catalog filters. |
-| History | `get_watchlist` | List the watchlist. |
-| History | `get_member_stats` | Member statistics. |
-| Films | `search_films` | Search the film catalog. |
-| Films | `get_film` | Film details. |
-| Films | `get_my_film_status` | Your watch/like/rating status for a film. |
-| Friends | `get_friends_activity` | Recent activity from friends. |
-| Friends | `get_friends_on_film` | Friends who have seen a film, with their ratings. |
-| Friends | `get_following` | Accounts you follow. |
-
-Write tools are registered only when the `letterboxd:write` scope was granted and `READ_ONLY` is not `"true"`:
-
-| Tool | Purpose |
+| Area | Tools |
 | --- | --- |
-| `log_film` | Log a film (date, rating, like, review). |
-| `set_film_status` | Set watchlist/liked/watched status. |
-| `update_log_entry` | Update an existing log entry. |
-| `delete_log_entry` | Delete a log entry. |
+| Account and history | `whoami`, `get_diary`, `get_log_entry`, `find_films`, `get_watchlist`, `get_member_stats` |
+| Films | `search_films`, `get_film`, `get_my_film_status` |
+| Friends | `get_friends_activity`, `get_friends_on_film`, `get_following` |
+| Write (optional) | `log_film`, `set_film_status`, `update_log_entry`, `delete_log_entry` |
 
-Tool parameters and output fields are defined in `src/`.
+Write tools are available only when the Letterboxd authorization includes `letterboxd:write` and `READ_ONLY` is not `"true"`.
 
-## Example prompts
+## Connect an MCP client
 
-- "What did I watch last month and how did I rate it?"
-- "Log Anora for yesterday, 4.5 stars, liked"
-- "Which of my friends have seen The Brutalist and what did they think?"
-- "Pick something under 100 minutes from my watchlist"
+Use `https://<worker-host>/mcp` as the remote MCP URL.
+
+- **Claude:** Settings → Connectors → Add custom connector.
+- **ChatGPT:** Enable developer mode, then add a connector using the same URL.
+
+The OAuth flow asks for the owner password. If no healthy Letterboxd account is linked, it redirects to Letterboxd to authorize the account.
 
 ## Configuration
 
-### Vars (`wrangler.jsonc`)
+### Worker variables
 
-| Name | Default | Description |
+Set in `wrangler.jsonc`:
+
+| Variable | Default | Purpose |
 | --- | --- | --- |
-| `PUBLIC_URL` | `https://letterboxd-mcp.<account>.workers.dev` | Public origin of the Worker; used for OAuth metadata and redirects. Must match the deployed host. |
-| `TIMEZONE` | `America/Vancouver` | IANA timezone used to resolve dates for diary and logging. |
-| `READ_ONLY` | `false` | `"true"` disables write tools and the `letterboxd:write` scope. |
-| `ALLOWED_REDIRECT_HOSTS` | `claude.ai,claude.com,chatgpt.com` | Comma-separated allowlist of OAuth redirect hosts. `localhost` is allowed only when `ENVIRONMENT=dev`. |
-| `ENVIRONMENT` | `production` | `production`, `dev`, or `test`; controls the localhost redirect allowance. |
+| `PUBLIC_URL` | Placeholder Workers URL | Public origin used for OAuth metadata and redirects. Must match the deployed host. |
+| `TIMEZONE` | `America/Vancouver` | Time zone used to resolve diary and logging dates. |
+| `READ_ONLY` | `false` | Set to `"true"` to disable write tools. |
+| `ALLOWED_REDIRECT_HOSTS` | `claude.ai,claude.com,chatgpt.com` | Allowed OAuth redirect hosts. |
+| `ENVIRONMENT` | `production` | Set to `dev` to allow localhost redirects during local OAuth testing. |
 
-### Secrets (`npx wrangler secret put <NAME>`)
+### Secrets
 
-| Name | Required | Description |
+Production values are configured with `wrangler secret put`. Local values go in the ignored `.dev.vars` file.
+
+| Secret | Required | Purpose |
 | --- | --- | --- |
-| `ADMIN_PASSWORD` | Yes | Owner password for the login step of the OAuth flow. |
-| `LETTERBOXD_CLIENT_ID` | Yes | Letterboxd API client id. |
-| `LETTERBOXD_CLIENT_SECRET` | Yes | Letterboxd API client secret. |
-| `COOKIE_SIGNING_KEY` | Yes (for relinking) | HMAC key (32+ random bytes) for the `/letterboxd/relink` CSRF cookie. Relinking fails without it; the rest of the server still works. |
+| `ADMIN_PASSWORD` | Yes | Password for the server owner’s authorization flow. |
+| `LETTERBOXD_CLIENT_ID` | Yes | Client ID issued with Letterboxd API access. |
+| `LETTERBOXD_CLIENT_SECRET` | Yes | Client secret issued with Letterboxd API access. |
+| `COOKIE_SIGNING_KEY` | Yes for relinking | HMAC key for the browser-bound relink flow; use at least 32 random bytes. |
 
-Local development uses `.dev.vars` (gitignored, see `.dev.vars.example`).
+### Cloudflare bindings
 
-### Bindings (`wrangler.jsonc`)
+The Wrangler config declares two KV namespaces, a `LetterboxdTokenStore` Durable Object, and a login rate limit binding. The Cloudflare deploy button provisions supported storage and Durable Object resources. For manual CLI deployment, create the KV namespaces and set their IDs as described above.
 
-| Binding | Type | Description |
-| --- | --- | --- |
-| `OAUTH_KV` | KV namespace | OAuth 2.1 authorization server state. |
-| `LOOKUP_KV` | KV namespace | Secondary KV namespace used by the Worker for lookups. |
-| `LB_TOKENS` | Durable Object (`LetterboxdTokenStore`) | Stores Letterboxd tokens and performs refreshes. |
-| `LOGIN_LIMITER` | Rate limit | Limits owner login attempts (5 per 60 seconds, per Cloudflare location). |
+## Test and check
 
-## Security
-
-- The owner password is a Worker secret, compared in constant time and rate limited.
-- OAuth redirect hosts are allowlisted (`claude.ai`, `claude.com`, `chatgpt.com`; `localhost` only when `ENVIRONMENT=dev`).
-- PKCE `S256` only; DCR + CIMD; resource indicators, so tokens are audience-bound.
-- MCP refresh tokens rotate on every refresh; the previous token stays valid until the grant expires (the OAuth provider library's default).
-- Letterboxd tokens live in the `LetterboxdTokenStore` Durable Object; refresh tokens never leave it.
-- Write tools are scope-gated (`letterboxd:write`) and disabled by the `READ_ONLY` kill switch.
-- CSRF and consent are handled by the OAuth provider library helpers.
-- No scraping of letterboxd.com; only the documented HEAD ID lookups are used.
-
-## Testing
+Tests run offline and do not require Letterboxd credentials:
 
 ```bash
-npm test          # whole suite, offline, inside workerd via @cloudflare/vitest-pool-workers
-npm run typecheck # tsc --noEmit
+npm test
+npm run typecheck
 ```
 
-The suite needs no live Letterboxd credentials.
-
-To check a running server (local or deployed) over real HTTP, including DCR, the consent page, the password gate, and — once Letterboxd is linked — token exchange and `tools/list`:
+To smoke-test a local or deployed server:
 
 ```bash
 node scripts/smoke.mjs --base-url http://localhost:8787
-node scripts/smoke.mjs --base-url https://<host> --password "$ADMIN_PASSWORD"
+node scripts/smoke.mjs --base-url https://<worker-host> --password "$ADMIN_PASSWORD"
 ```
 
-Without `--password` it stops at the consent page. If Letterboxd is not linked yet it reports that the flow redirects to Letterboxd and exits 0. Use `--client-ip <ip>` to isolate repeat runs from the login rate limiter.
+Without `--password`, the smoke test stops at the consent page. If Letterboxd is not linked, it reports the redirect to Letterboxd and exits successfully. Use `--client-ip <ip>` to isolate repeat runs from the login rate limiter.
 
-## Known limitations
+## Relink or unlink Letterboxd
 
-Non-goals for v1 (not implemented):
+- Open `https://<worker-host>/letterboxd/relink` to relink the Letterboxd account. This requires the owner password and `COOKIE_SIGNING_KEY`.
+- Submit `POST /letterboxd/unlink` with the owner password to delete stored Letterboxd tokens.
+- Letterboxd does not publish a token revocation endpoint. To revoke access upstream, remove the app from your Letterboxd account settings.
 
-- Multi-user support (this server is single-owner).
-- Lists management, comments, profile editing, and following/unfollowing.
-- A local stdio build; the server is remote HTTP only.
+## Security notes
 
-Other constraints:
+- Use unique production secrets. Never commit `.dev.vars`.
+- The owner password is compared in constant time and login attempts are rate limited.
+- OAuth redirect hosts are allowlisted; localhost is allowed only in the dev environment.
+- MCP tokens are audience-bound, and upstream Letterboxd tokens stay in the Durable Object.
+- Write operations require the write scope and can be disabled with `READ_ONLY="true"`.
 
-- The read-only letterboxd.com lookup is limited to documented HEAD ID lookups; no page scraping.
-- The older `/film/*` API endpoints are used rather than the newer `/production/*` endpoints, so TV shows are not supported in v1 (the `/production/*` migration is pending).
-- Letterboxd does not advertise PKCE on its authorization endpoint, so the upstream link relies on the browser-bound `state` (the MCP-facing flow still enforces PKCE `S256`).
-- Smart Placement is not enabled.
-- Tool results are compact JSON text, not rich structured content.
-- Login limiting is per Cloudflare location (`LOGIN_LIMITER`) plus a KV counter, not a single global limit.
+## Limitations
+
+- Single-owner server; no multi-user support.
+- Remote HTTP only; no local stdio server.
+- Lists management, comments, profile editing, and following/unfollowing are not implemented.
+- v1 uses older `/film/*` endpoints, so TV shows are not supported.
+- The upstream Letterboxd authorization flow uses browser-bound state; the MCP-facing flow enforces PKCE S256.
+- Login limiting uses a Cloudflare rate limit binding plus a KV counter, not one global limit.
+
+See [CHANGELOG.md](CHANGELOG.md) for release history.
