@@ -1,16 +1,17 @@
 # Copy this file to .dev.vars for local development.
 # Keep .dev.vars private and never commit it.
+# Fill in the values you need; test and typecheck do not require Letterboxd credentials.
 
-# Required for the owner authorization flow. Use a unique local password.
-ADMIN_PASSWORD="replace-with-a-strong-local-password"
+# Required for the owner authorization flow.
+ADMIN_PASSWORD=""
 
-# Required for live Letterboxd account linking. The test suite works without these.
+# Required for live Letterboxd account linking.
 # Request API access at https://letterboxd.com/api-beta/
-LETTERBOXD_CLIENT_ID="your-letterboxd-api-client-id"
-LETTERBOXD_CLIENT_SECRET="your-letterboxd-api-client-secret"
+LETTERBOXD_CLIENT_ID=""
+LETTERBOXD_CLIENT_SECRET=""
 
 # Required for /letterboxd/relink. Generate with: openssl rand -hex 32
-COOKIE_SIGNING_KEY="replace-with-at-least-32-random-bytes"
+COOKIE_SIGNING_KEY=""
 
 # Optional overrides for local browser-based OAuth flows:
 # PUBLIC_URL="http://localhost:8787"
