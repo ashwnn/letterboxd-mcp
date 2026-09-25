@@ -42,6 +42,17 @@ function providerFor(env: Env): OAuthProvider<Env> {
 
 export default {
   fetch(request: Request, env: Env, ctx: ExecutionContext) {
-    return providerFor(env).fetch(request, env, ctx);
+    let provider: OAuthProvider<Env>;
+    try {
+      provider = providerFor(env);
+    } catch (error) {
+      // A placeholder or malformed PUBLIC_URL must fail loudly, not silently.
+      return new Response(
+        `letterboxd-mcp is misconfigured: ${error instanceof Error ? error.message : String(error)}. ` +
+          "Set PUBLIC_URL in wrangler.jsonc (or .dev.vars) to the origin this Worker is served from.",
+        { status: 500, headers: { "content-type": "text/plain; charset=utf-8" } },
+      );
+    }
+    return provider.fetch(request, env, ctx);
   },
 } satisfies ExportedHandler<Env>;
