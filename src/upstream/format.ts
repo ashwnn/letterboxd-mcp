@@ -155,7 +155,7 @@ function directorsOf(film: AnyRecord): string[] {
   const direct = names(film.directors);
   if (direct.length > 0) return direct;
   return contributionsOf(film)
-    .filter((entry) => /^(co)?director$/i.test(entry.type))
+    .filter((entry) => /^co?-?director$/i.test(entry.type))
     .flatMap((entry) => entry.people.map((person) => person.name))
     .filter((name) => name.length > 0);
 }

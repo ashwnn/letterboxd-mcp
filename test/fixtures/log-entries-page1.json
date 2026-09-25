@@ -33,6 +33,6 @@
       ]
     }
   ],
-  "next": "https://api.letterboxd.com/api/v0/log-entries?cursor=cD0y&filmId=4k3v&member=2a9q",
+  "next": "https://api.letterboxd.com/api/v0/log-entries?cursor=cD0y&film=4k3v&member=2a9q",
   "itemCount": 2
 }
