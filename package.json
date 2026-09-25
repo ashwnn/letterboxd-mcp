@@ -25,5 +25,21 @@
     "typescript": "5.9.3",
     "vitest": "4.1.11",
     "wrangler": "4.139.0"
+  },
+  "cloudflare": {
+    "bindings": {
+      "ADMIN_PASSWORD": {
+        "description": "Choose a unique, strong password for the single owner who authorizes MCP clients."
+      },
+      "LETTERBOXD_CLIENT_ID": {
+        "description": "Your Letterboxd API client ID. Request API access at https://letterboxd.com/api-beta/."
+      },
+      "LETTERBOXD_CLIENT_SECRET": {
+        "description": "Your Letterboxd API client secret, issued after Letterboxd API access is approved."
+      },
+      "COOKIE_SIGNING_KEY": {
+        "description": "Generate a random key with `openssl rand -hex 32`. Required for the secure Letterboxd relink flow."
+      }
+    }
   }
 }
