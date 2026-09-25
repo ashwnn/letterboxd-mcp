@@ -1,0 +1,10 @@
+# Copy to .dev.vars for local development (never commit .dev.vars).
+# Required
+ADMIN_PASSWORD="change-me"
+LETTERBOXD_CLIENT_ID="your-letterboxd-api-client-id"
+LETTERBOXD_CLIENT_SECRET="your-letterboxd-api-client-secret"
+# Required for the /letterboxd/relink flow (32+ random bytes).
+COOKIE_SIGNING_KEY=""
+# Optional local overrides (needed for browser OAuth flows against localhost)
+# PUBLIC_URL="http://localhost:8787"
+# ENVIRONMENT="dev"
