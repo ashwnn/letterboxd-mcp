@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Write tools gated on the `letterboxd:write` scope and the `READ_ONLY` kill switch: `log_film`, `set_film_status`, `update_log_entry`, `delete_log_entry`.
 - Configuration: KV namespaces `OAUTH_KV` and `LOOKUP_KV`, Durable Object `LB_TOKENS`, rate limit `LOGIN_LIMITER`, and vars `PUBLIC_URL`, `TIMEZONE`, `READ_ONLY`, `ALLOWED_REDIRECT_HOSTS`, `ENVIRONMENT`.
 - Offline test suite using vitest and `@cloudflare/vitest-pool-workers`, plus `npm run typecheck`.
+- `scripts/smoke.mjs`: dependency-free post-deploy check for metadata, DCR, the consent page, the password gate, and (when linked) token exchange and `tools/list`.
 
 ### Notes
 

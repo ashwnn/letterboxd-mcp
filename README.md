@@ -183,6 +183,7 @@ Local development uses `.dev.vars` (gitignored, see `.dev.vars.example`).
 - The owner password is a Worker secret, compared in constant time and rate limited.
 - OAuth redirect hosts are allowlisted (`claude.ai`, `claude.com`, `chatgpt.com`; `localhost` only when `ENVIRONMENT=dev`).
 - PKCE `S256` only; DCR + CIMD; resource indicators, so tokens are audience-bound.
+- MCP refresh tokens rotate on every refresh; the previous token stays valid until the grant expires (the OAuth provider library's default).
 - Letterboxd tokens live in the `LetterboxdTokenStore` Durable Object; refresh tokens never leave it.
 - Write tools are scope-gated (`letterboxd:write`) and disabled by the `READ_ONLY` kill switch.
 - CSRF and consent are handled by the OAuth provider library helpers.
@@ -196,6 +197,15 @@ npm run typecheck # tsc --noEmit
 ```
 
 The suite needs no live Letterboxd credentials.
+
+To check a running server (local or deployed) over real HTTP, including DCR, the consent page, the password gate, and — once Letterboxd is linked — token exchange and `tools/list`:
+
+```bash
+node scripts/smoke.mjs --base-url http://localhost:8787
+node scripts/smoke.mjs --base-url https://<host> --password "$ADMIN_PASSWORD"
+```
+
+Without `--password` it stops at the consent page. If Letterboxd is not linked yet it reports that the flow redirects to Letterboxd and exits 0. Use `--client-ip <ip>` to isolate repeat runs from the login rate limiter.
 
 ## Known limitations
 
